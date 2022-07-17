@@ -19,7 +19,7 @@ print(f"Listening on {(ip, port)}")
 
 lsock.setblocking(False)
 
-sel.register(lsock, selectors.EVEN_READ, data=None)
+sel.register(lsock, selectors.EVENT_READ, data=None)
 
 def accept_wrapper(sock):
     conn, addr = sock.accept()
@@ -45,7 +45,7 @@ def service_connection(key, mask):
             print(f"Echoing {data.outb!r} to {data.addr}")
             sent = sock.send(data.outb)
             data.outb = data.outb[sent:]
-            
+
 try:
     while True:
         events = sel.select(timeout=None)
