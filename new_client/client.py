@@ -5,6 +5,7 @@ import types
 
 ip = "192.168.178.55"
 port = 8050
+num_conns = 2
 
 sel = selectors.DefaultSelector()
 messages = [b"Message 1 from client.", b"Message 2 from client."]
@@ -39,16 +40,15 @@ def service_connection(key, mask):
             print(f"Closing connection {data.connid}")
             sel.unregister(sock)
             sock.close()
-        if mask & selectors.EVENT_WRITE:
-            if not data.outb and data.messages:
-                data.outb = data.messages.pop(0)
-            if data.outb:
-                print(f"Sending {data.outb!r} to connection {data.connid}")
-                sent = sock.send(data.outb)
-                data.outb = data.outb[sent:]
+    if mask & selectors.EVENT_WRITE:
+        if not data.outb and data.messages:
+            data.outb = data.messages.pop(0)
+        if data.outb:
+            print(f"Sending {data.outb!r} to connection {data.connid}")
+            sent = sock.send(data.outb)
+            data.outb = data.outb[sent:]
 
-num_conns = 2
-start_connections(ip, int(port), int(num_conns))
+start_connections(ip, port, num_conns)
 
 try:
     while True:
