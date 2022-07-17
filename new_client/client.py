@@ -1,10 +1,7 @@
 import sys
 import socket
 import selectors
-from tarfile import _Fileobj
 import types
-
-from hexapod_code_v2.new_server.server import service_connection
 
 ip = "192.168.178.55"
 port = 8050
@@ -31,7 +28,7 @@ def start_connections(ip, port, num_conns):
         sel.register(sock, events, data=data)
 
 def service_connection(key, mask):
-    sock = key._Fileobj
+    sock = key.fileobj
     data = key.data
     if mask & selectors.EVENT_READ:
         recv_data = sock.recv(1024)
@@ -50,12 +47,8 @@ def service_connection(key, mask):
                 sent = sock.send(data.outb)
                 data.outb = data.outb[sent:]
 
-if len(sys.argv) != 4:
-    print(f"Usage: {sys.argv[0]} <host> <port> <num_connections>")
-    sys.exit(1)
-
 num_conns = 2
-start_connections(host, int(port), int(num_conns))
+start_connections(ip, int(port), int(num_conns))
 
 try:
     while True:
