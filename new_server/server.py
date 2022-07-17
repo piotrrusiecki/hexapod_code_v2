@@ -1,6 +1,7 @@
 import socket
 
-ip = socket.gethostbyname(socket.gethostname())
+#ip = socket.gethostbyname(socket.gethostname())
+ip = "0.0.0.0"
 port = 8050
 
 print(f"IP Address: {ip}")

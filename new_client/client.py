@@ -1,10 +1,10 @@
 import socket
 
-ip = "192.168.1.0"
+ip = "192.168.178.55"
 port = 8050
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connecT((ip, port))
+    s.connect((ip, port))
     s.sendall(b"Hello!")
     data = s.recv(1024)
 
