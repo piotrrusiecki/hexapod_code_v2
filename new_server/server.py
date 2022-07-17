@@ -2,24 +2,13 @@
 import socket
 import selectors
 import types
+
 #ip = socket.gethostbyname(socket.gethostname())
+
 ip = "0.0.0.0"
 port = 8050
 
-print(f"IP Address: {ip}")
-print(f"Port: {port}")
-
 sel= selectors.DefaultSelector()
-
-lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-lsock.bind((ip,port))
-lsock.listen()
-
-print(f"Listening on {(ip, port)}")
-
-lsock.setblocking(False)
-
-sel.register(lsock, selectors.EVENT_READ, data=None)
 
 def accept_wrapper(sock):
     conn, addr = sock.accept()
@@ -45,6 +34,13 @@ def service_connection(key, mask):
             print(f"Echoing {data.outb!r} to {data.addr}")
             sent = sock.send(data.outb)
             data.outb = data.outb[sent:]
+
+lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+lsock.bind((ip,port))
+lsock.listen()
+print(f"Listening on {(ip, port)}")
+lsock.setblocking(False)
+sel.register(lsock, selectors.EVENT_READ, data=None)
 
 try:
     while True:
