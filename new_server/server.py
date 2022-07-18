@@ -5,16 +5,11 @@ import types
 
 #ip = socket.gethostbyname(socket.gethostname())
 
-ip = "0.0.0.0"
-port = 8050
-
-sel= selectors.DefaultSelector()
-
 def accept_wrapper(sock):
     conn, addr = sock.accept()
     print(f"Accepted connection from {addr}")
     conn.setblocking(False)
-    data = types.SimpleNamespace(addr=addr, inb=b"", outb=b"")
+    data = types.SimpleNamespace(addr=addr, outb=b"")
     events = selectors.EVENT_READ | selectors.EVENT_WRITE
     sel.register(conn, events, data=data)
 
@@ -34,6 +29,11 @@ def service_connection(key, mask):
             print(f"Echoing {data.outb!r} to {data.addr}")
             sent = sock.send(data.outb)
             data.outb = data.outb[sent:]
+
+ip = "0.0.0.0"
+port = 8050
+
+sel= selectors.DefaultSelector()
 
 lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 lsock.bind((ip,port))
