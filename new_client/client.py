@@ -1,61 +1,62 @@
+#!/usr/bin/env python3
+
 import sys
 import socket
 import selectors
-import types
-
-ip = "192.168.178.55"
-port = 8050
-num_conns = 2
+import traceback
+import cl_message
 
 sel = selectors.DefaultSelector()
-messages = [b"Message 1 from client.", b"Message 2 from client."]
 
-def start_connections(ip, port, num_conns):
-    server_addr = (ip, port)
-    for i in range(0, num_conns):
-        connid = i + 1
-        print(f"Starting connection {connid} to {server_addr}")
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setblocking(False)
-        sock.connect_ex(server_addr)
-        events = selectors.EVENT_READ | selectors.EVENT_WRITE
-        data = types.SimpleNamespace(
-            connid = connid,
-            msg_total = sum(len(m) for m in messages),
-            recv_total = 0,
-            messages = messages.copy(),
-            outb=b"",
+
+def create_request(action, value):
+    if action == "search":
+        return dict(
+            type="text/json",
+            encoding="utf-8",
+            content=dict(action=action, value=value),
         )
-        sel.register(sock, events, data=data)
+    else:
+        return dict(
+            type="binary/custom-client-binary-type",
+            encoding="binary",
+            content=bytes(action + value, encoding="utf-8"),
+        )
 
-def service_connection(key, mask):
-    sock = key.fileobj
-    data = key.data
-    if mask & selectors.EVENT_READ:
-        recv_data = sock.recv(1024)  
-        if recv_data:
-            print(f"Received {recv_data!r} from connection {data.connid}")
-            data.recv_total += len(recv_data)
-        if not recv_data or data.recv_total == data.msg_total:
-            print(f"Closing connection {data.connid}")
-            sel.unregister(sock)
-            sock.close()
-    if mask & selectors.EVENT_WRITE:
-        if not data.outb and data.messages:
-            data.outb = data.messages.pop(0)
-        if data.outb:
-            print(f"Sending {data.outb!r} to connection {data.connid}")
-            sent = sock.send(data.outb) 
-            data.outb = data.outb[sent:]
 
-start_connections(ip, port, num_conns)
+def start_connection(host, port, request):
+    addr = (host, port)
+    print(f"Starting connection to {addr}")
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setblocking(False)
+    sock.connect_ex(addr)
+    events = selectors.EVENT_READ | selectors.EVENT_WRITE
+    message = cl_message.Message(sel, sock, addr, request)
+    sel.register(sock, events, data=message)
+
+
+if len(sys.argv) != 5:
+    print(f"Usage: {sys.argv[0]} <host> <port> <action> <value>")
+    sys.exit(1)
+
+host, port = sys.argv[1], int(sys.argv[2])
+action, value = sys.argv[3], sys.argv[4]
+request = create_request(action, value)
+start_connection(host, port, request)
 
 try:
     while True:
         events = sel.select(timeout=1)
-        if events:
-            for key, mask in events:
-                service_connection(key, mask)
+        for key, mask in events:
+            message = key.data
+            try:
+                message.process_events(mask)
+            except Exception:
+                print(
+                    f"Main: Error: Exception for {message.addr}:\n"
+                    f"{traceback.format_exc()}"
+                )
+                message.close()
         # Check for a socket being monitored to continue.
         if not sel.get_map():
             break
